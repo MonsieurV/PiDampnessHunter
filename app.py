@@ -16,12 +16,30 @@ Copyright (c) 2015 Yoan Tournade
 import Adafruit_DHT
 import pifacedigitalio
 import time
+import signal
 
-TARGET_HUMIDITY = 35
-TARGET_TEMPERATURE = 20
+# TODO Conceive a smarter algorithm a use 'target' values,
+# not row thresholds.
+THRESHOLD_HUMIDITY = 50
+THRESHOLD_TEMPERATURE = 19
+MAX_TEMPERATURE = 22
 
 pifacedigital = pifacedigitalio.PiFaceDigital()
 
+def heat(temperature, humidity):
+	if temperature > THRESHOLD_TEMPERATURE and humidity < THRESHOLD_HUMIDITY:
+		return False
+	if temperature > MAX_TEMPERATURE:
+		return False
+	# TODO Check the current duration of heating: if the heater has been working
+	# more than MAX_DURATION, make a pause during PAUSE_DURATION.
+	return True
+
+def quit_gracefully(*args):
+    pifacedigital.relays[1].turn_off()
+    exit(0)
+
+signal.signal(signal.SIGINT, quit_gracefully)
 try:
 	while 1:
 		humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
@@ -29,7 +47,7 @@ try:
 			continue
 		print('Temperature: {0:0.1f}°C -- Humidity: {1:0.1f}%'.format(
 			temperature, humidity))
-		if temperature < TARGET_TEMPERATURE or humidity > TARGET_HUMIDITY:
+		if heat(temperature, humidity):
 			# Turn on the heater.
 			pifacedigital.relays[1].turn_on()
 		else:
