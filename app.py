@@ -18,21 +18,35 @@ import pifacedigitalio
 import time
 import signal
 
-# TODO Conceive a smarter algorithm a use 'target' values,
-# not row thresholds.
-THRESHOLD_HUMIDITY = 50
-THRESHOLD_TEMPERATURE = 19
-MAX_TEMPERATURE = 22
+# TODO Conceive a smarter algorithm that use 'target' values,
+# not raw thresholds.
+THRESHOLD_HUMIDITY = 48
+THRESHOLD_TEMPERATURE = 18.5
+MAX_TEMPERATURE = 21.5
+TICK = 10
+# As a multiple of TICK.
+MIN_DURATION = 3
+min_duration_counter = 3
 
 pifacedigital = pifacedigitalio.PiFaceDigital()
 
 def heat(temperature, humidity):
+	if min_duration_counter > 0:
+		return continue_heating()
 	if temperature > THRESHOLD_TEMPERATURE and humidity < THRESHOLD_HUMIDITY:
-		return False
+		return stop_heating()
 	if temperature > MAX_TEMPERATURE:
-		return False
+		return stop_heating()
 	# TODO Check the current duration of heating: if the heater has been working
 	# more than MAX_DURATION, make a pause during PAUSE_DURATION.
+	return True
+
+def stop_heating():
+	min_duration_counter = MIN_DURATION
+	return False
+
+def continue_heating():
+	min_duration_counter = min_duration_counter - 1
 	return True
 
 def quit_gracefully(*args):
@@ -52,7 +66,7 @@ try:
 			pifacedigital.relays[1].turn_on()
 		else:
 			pifacedigital.relays[1].turn_off()
-		time.sleep(10)
+		time.sleep(TICK)
 finally:
 	# Turn off the heater.
 	pifacedigital.relays[1].turn_off()
