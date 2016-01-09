@@ -35,7 +35,7 @@ class HeatStrategy:
 		if self.min_duration_counter > 0:
 			return self.continue_heating()
 		if temperature > THRESHOLD_TEMPERATURE and humidity < THRESHOLD_HUMIDITY:
-			return stop_heating()
+			return self.stop_heating()
 		if temperature > MAX_TEMPERATURE:
 			return self.stop_heating()
 		# TODO Check the current duration of heating: if the heater has been working
