@@ -17,6 +17,11 @@ import Adafruit_DHT
 import pifacedigitalio
 import time
 import signal
+try:
+    import Queue as queue
+except ImportError:
+    import queue
+
 
 # TODO Conceive a smarter algorithm that use 'target' values,
 # not raw thresholds.
@@ -70,20 +75,34 @@ def quit_gracefully(*args):
     pifacedigital.relays[1].turn_off()
     exit(0)
 
+irqQueue = queue.Queue()
+
+def stop():
+    irqQueue.put('STOP')
+
 signal.signal(signal.SIGINT, quit_gracefully)
-try:
-    while 1:
-        humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
-        if humidity is None or temperature is None:
-            continue
-        print('Temperature: {0:0.1f}°C -- Humidity: {1:0.1f}%'.format(
-            temperature, humidity))
-        if strategy.heat(temperature, humidity):
-            # Turn on the heater.
-            pifacedigital.relays[1].turn_on()
-        else:
-            pifacedigital.relays[1].turn_off()
-        time.sleep(TICK)
-finally:
-    # Turn off the heater.
-    pifacedigital.relays[1].turn_off()
+
+def run():
+    try:
+        while 1:
+            humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
+            if humidity is None or temperature is None:
+                continue
+            print('Temperature: {0:0.1f}°C -- Humidity: {1:0.1f}%'.format(
+                temperature, humidity))
+            if strategy.heat(temperature, humidity):
+                # Turn on the heater.
+                pifacedigital.relays[1].turn_on()
+            else:
+                pifacedigital.relays[1].turn_off()
+            try:
+                if irqQueue.get(True, TICK) == 'STOP':
+                    quit_gracefully()
+            except queue.Empty:
+                pass
+    finally:
+        # Turn off the heater.
+        pifacedigital.relays[1].turn_off()
+
+if __name__ == "__main__":
+    run()
