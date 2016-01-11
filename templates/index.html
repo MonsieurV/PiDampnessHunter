@@ -15,12 +15,16 @@
 </head>
 <body>
   <div class="container">
-    <div class="row">
-      <div style="margin-top: 5%">
+    <div class="row" style="margin-top: 5%">
+      <div>
         <h3>Hampness Hunter</h3>
       </div>
     </div>
     <div class="row">
+      <button id="set-on" class="button-primary" onclick="setOn();" {% if on %}style="display: none;"{% endif %}>Enable heater</button>
+      <button id="set-off" onclick="setOff();" {% if not on %}style="display: none;"{% endif %}>Disable heater</button>
+    </div>
+    <div class="row" style="margin-top: 5px">
       <h4>Current readings</h4>
     </div>
     <div class="row readings">
@@ -32,6 +36,22 @@
       </div>
     </div>
     <div class="row">
+      <h4>Settings</h4>
+    </div>
+    <form>
+      <div class="row">
+        <div class="six columns">
+          <label for="thresholdTemperature">Temperature Threshold</label>
+          <input id="thresholdTemperature" type="numeric">
+        </div>
+        <div class="six columns">
+          <label for="thresholdHumidity">Humidity Threshold</label>
+          <input id="thresholdHumidity" type="numeric">
+        </div>
+      </div>
+      <button onclick="changeSettings(); return false;">Update</button>
+    </form>
+    <div class="row">
       <p>
         By <a href="https://www.ytotech.com">YtoTech</a>.
         See <a href="https://github.com/MonsieurV/PiDampnessHunter">code on GitHub</a>.
@@ -39,11 +59,57 @@
     </div>
   </div>
 <script>
+function setStateOnOff(on) {
+  if(on) {
+    $("#set-off").show();
+    $("#set-on").hide();
+  } else {
+    $("#set-on").show();
+    $("#set-off").hide();
+  }
+}
+
+function setOn() {
+  setStateOnOff(true);
+  $.post("/on");
+}
+
+function setOff() {
+  setStateOnOff(false);
+  $.post("/off");
+}
+
+function getSettings() {
+  $.getJSON("/settings", function(data) {
+    $("#thresholdTemperature").val(data.threshold_temperature);
+    $("#thresholdHumidity").val(data.threshold_humidity);
+  });
+}
+
+function changeSettings() {
+  $.ajax("/settings", {
+    data: JSON.stringify({
+      "threshold_temperature": parseInt($("#thresholdTemperature").val()),
+      "threshold_humidity": parseInt($("#thresholdHumidity").val()),
+      "max_temperature": 22
+    }),
+    contentType : 'application/json',
+    type: 'PATCH',
+    success: function() {
+      getSettings();
+    }
+  });
+}
+
+getSettings();
+
 setInterval(function() {
   $.getJSON("/readings", function(data) {
-    console.log(data);
     $(".readings #temperature").text(data.temperature);
     $(".readings #humidity").text(data.humidity);
+  });
+  $.getJSON("/settings", function(data) {
+    setStateOnOff(data.on);
   });
 }, 1000);
 </script>

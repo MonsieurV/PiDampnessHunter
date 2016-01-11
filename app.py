@@ -22,18 +22,17 @@ try:
 except ImportError:
     import queue
 
-
-# TODO Conceive a smarter algorithm that use 'target' values,
-# not raw thresholds.
-THRESHOLD_HUMIDITY = 50
-THRESHOLD_TEMPERATURE = 18.5
-MAX_TEMPERATURE = 21.5
-# In seconds.
-TICK = 10
-# As a multiple of TICK.
-MIN_DURATION = 3
-
 class HeatStrategy:
+    # TODO Conceive a smarter algorithm that use 'target' values,
+    # not raw thresholds.
+    THRESHOLD_HUMIDITY = 50
+    THRESHOLD_TEMPERATURE = 18.5
+    MAX_TEMPERATURE = 21.5
+    # In seconds.
+    TICK = 10
+    # As a multiple of TICK.
+    MIN_DURATION = 3
+
     def __init__(self):
         self.on = True
         self.duration_counter = None
@@ -49,14 +48,16 @@ class HeatStrategy:
             self.humidity = round(self.humidity, 2)
 
     def heat(self):
+        print(self.on, self.THRESHOLD_HUMIDITY, self.THRESHOLD_TEMPERATURE)
         if not self.on:
             return self._stop_heating()
-        if self.duration_counter is not None and self.duration_counter < MIN_DURATION:
+        if self.duration_counter is not None \
+                and self.duration_counter < self.MIN_DURATION:
             return self._start_heating()
-        if self.temperature > THRESHOLD_TEMPERATURE \
-                and self.humidity < THRESHOLD_HUMIDITY:
+        if self.temperature > self.THRESHOLD_TEMPERATURE \
+                and self.humidity < self.THRESHOLD_HUMIDITY:
             return self._stop_heating()
-        if self.temperature > MAX_TEMPERATURE:
+        if self.temperature > self.MAX_TEMPERATURE:
             return self._stop_heating()
         # TODO Check the current duration of heating: if the heater has been working
         # more than MAX_DURATION, make a pause during PAUSE_DURATION.
@@ -88,6 +89,9 @@ def quit_gracefully(*args):
 
 irqQueue = queue.Queue()
 
+def update():
+    irqQueue.put('UPDATE')
+
 def stop():
     irqQueue.put('STOP')
 
@@ -97,7 +101,7 @@ def run():
     try:
         while 1:
             try:
-                if irqQueue.get(True, TICK) == 'STOP':
+                if irqQueue.get(True, strategy.TICK) == 'STOP':
                     quit_gracefully()
             except queue.Empty:
                 pass
