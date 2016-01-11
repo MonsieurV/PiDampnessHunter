@@ -37,15 +37,26 @@ class HeatStrategy:
     def __init__(self):
         self.on = True
         self.duration_counter = None
+        self.temperature = None
+        self.humidity = None
 
-    def heat(self, temperature, humidity):
+    def set(self, temperature, humidity):
+        self.temperature = temperature
+        if self.temperature:
+            self.temperature = round(self.temperature, 2)
+        self.humidity = humidity
+        if self.humidity:
+            self.humidity = round(self.humidity, 2)
+
+    def heat(self):
         if not self.on:
             return self._stop_heating()
         if self.duration_counter is not None and self.duration_counter < MIN_DURATION:
             return self._start_heating()
-        if temperature > THRESHOLD_TEMPERATURE and humidity < THRESHOLD_HUMIDITY:
+        if self.temperature > THRESHOLD_TEMPERATURE \
+                and self.humidity < THRESHOLD_HUMIDITY:
             return self._stop_heating()
-        if temperature > MAX_TEMPERATURE:
+        if self.temperature > MAX_TEMPERATURE:
             return self._stop_heating()
         # TODO Check the current duration of heating: if the heater has been working
         # more than MAX_DURATION, make a pause during PAUSE_DURATION.
@@ -85,21 +96,22 @@ signal.signal(signal.SIGINT, quit_gracefully)
 def run():
     try:
         while 1:
-            humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
-            if humidity is None or temperature is None:
-                continue
-            print('Temperature: {0:0.1f}°C -- Humidity: {1:0.1f}%'.format(
-                temperature, humidity))
-            if strategy.heat(temperature, humidity):
-                # Turn on the heater.
-                pifacedigital.relays[1].turn_on()
-            else:
-                pifacedigital.relays[1].turn_off()
             try:
                 if irqQueue.get(True, TICK) == 'STOP':
                     quit_gracefully()
             except queue.Empty:
                 pass
+            humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
+            strategy.set(temperature, humidity)
+            if humidity is None or temperature is None:
+                continue
+            print('Temperature: {0:0.1f}°C -- Humidity: {1:0.1f}%'.format(
+                temperature, humidity))
+            if strategy.heat():
+                # Turn on the heater.
+                pifacedigital.relays[1].turn_on()
+            else:
+                pifacedigital.relays[1].turn_off()
     finally:
         # Turn off the heater.
         pifacedigital.relays[1].turn_off()

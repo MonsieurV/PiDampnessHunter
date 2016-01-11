@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dampness Hunter</title>
+  <meta name="description" content="Control a heater with a Raspberry Pi, a temperature and humidity sensor and a relay.">
+  <meta name="author" content="Yoan Tournade">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/static/css/normalize.css">
+  <link rel="stylesheet" href="/static/css/skeleton.css">
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <script src="/static/js/jquery.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div style="margin-top: 5%">
+        <h3>Hampness Hunter</h3>
+      </div>
+    </div>
+    <div class="row">
+      <h4>Current readings</h4>
+    </div>
+    <div class="row readings">
+      <div class="one-half column">
+        <p>Temperature: <span id="temperature"></span>°C</p>
+      </div>
+      <div class="one-half column">
+        <p>Humidity: <span id="humidity"></span>%</p>
+      </div>
+    </div>
+    <div class="row">
+      <p>
+        By <a href="https://www.ytotech.com">YtoTech</a>.
+        See <a href="https://github.com/MonsieurV/PiDampnessHunter">code on GitHub</a>.
+      </p>
+    </div>
+  </div>
+<script>
+setInterval(function() {
+  $.getJSON("/readings", function(data) {
+    console.log(data);
+    $(".readings #temperature").text(data.temperature);
+    $(".readings #humidity").text(data.humidity);
+  });
+}, 1000);
+</script>
+</body>
+</html>
