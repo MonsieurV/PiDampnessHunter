@@ -10,8 +10,10 @@
   <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="/static/css/normalize.css">
   <link rel="stylesheet" href="/static/css/skeleton.css">
+  <link rel="stylesheet" href="/static/css/chartist.min.css">
   <link rel="icon" type="image/png" href="/static/images/favicon.png">
   <script src="/static/js/jquery.min.js"></script>
+  <script src="/static/js/chartist.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -25,7 +27,7 @@
       <button id="set-off" onclick="setOff();" {% if not on %}style="display: none;"{% endif %}>Disable heater</button>
     </div>
     <div class="row" style="margin-top: 5px">
-      <h4>Current readings</h4>
+      <h4>Readings</h4>
     </div>
     <div class="row readings">
       <div class="one-half column">
@@ -36,17 +38,31 @@
       </div>
     </div>
     <div class="row">
-      <h4>Settings</h4>
+      <div class="one-half column">
+        <div id="chart-temperature" class="ct-chart"></div>
+      </div>
+      <div class="one-half column">
+        <div id="chart-humidity" class="ct-chart"></div>
+      </div>
     </div>
-    <form>
+    <div class="row">
+      <h4>Preferences</h4>
+    </div>
+    <form class="preferences">
       <div class="row">
         <div class="six columns">
           <label for="thresholdTemperature">Temperature Threshold</label>
-          <input id="thresholdTemperature" type="numeric">
+          <input id="thresholdTemperature" type="number">
         </div>
         <div class="six columns">
           <label for="thresholdHumidity">Humidity Threshold</label>
-          <input id="thresholdHumidity" type="numeric">
+          <input id="thresholdHumidity" type="number">
+        </div>
+      </div>
+      <div class="row">
+        <div class="six columns">
+          <label for="maxTemperature">Maximum Temperature</label>
+          <input id="maxTemperature" type="number">
         </div>
       </div>
       <button onclick="changeSettings(); return false;">Update</button>
@@ -59,6 +75,37 @@
     </div>
   </div>
 <script>
+var originalForm = null;
+var chartTemperature = {
+  labels: [],
+  series: [
+    []
+  ]
+}
+var chartHumidity = {
+  labels: [],
+  series: [
+    []
+  ]
+}
+
+function showGraph() {
+  new Chartist.Line('#chart-temperature', chartTemperature, {
+    showPoint: false,
+    axisX: {
+      showGrid: false,
+      showLabel: false
+    }
+  });
+  new Chartist.Line('#chart-humidity', chartHumidity, {
+    showPoint: false,
+    axisX: {
+      showGrid: false,
+      showLabel: false
+    }
+  });
+}
+
 function setStateOnOff(on) {
   if(on) {
     $("#set-off").show();
@@ -79,20 +126,50 @@ function setOff() {
   $.post("/off");
 }
 
+function serializeForm() {
+  return JSON.stringify({
+    "threshold_temperature": parseFloat($("#thresholdTemperature").val()),
+    "threshold_humidity": parseFloat($("#thresholdHumidity").val()),
+    "max_temperature": parseFloat($("#maxTemperature").val())
+  });
+}
+
 function getSettings() {
   $.getJSON("/settings", function(data) {
     $("#thresholdTemperature").val(data.threshold_temperature);
     $("#thresholdHumidity").val(data.threshold_humidity);
+    $("#maxTemperature").val(data.max_temperature);
+    originalForm = serializeForm();
+    $(".preferences button").removeClass("button-primary");
+  });
+}
+
+$('.preferences :input').on('change input', function() {
+  if(originalForm !== null)
+    if(serializeForm().valueOf() !== originalForm.valueOf())
+      $(".preferences button").addClass("button-primary");
+    else
+      $(".preferences button").removeClass("button-primary");
+});
+
+function poll() {
+  $.getJSON("/readings", function(data) {
+    $(".readings #temperature").text(data.temperature);
+    $(".readings #humidity").text(data.humidity);
+    chartTemperature.labels.push('');
+    chartTemperature.series[0].push(data.temperature);
+    chartHumidity.labels.push('');
+    chartHumidity.series[0].push(data.humidity);
+    showGraph();
+  });
+  $.getJSON("/settings", function(data) {
+    setStateOnOff(data.on);
   });
 }
 
 function changeSettings() {
   $.ajax("/settings", {
-    data: JSON.stringify({
-      "threshold_temperature": parseInt($("#thresholdTemperature").val()),
-      "threshold_humidity": parseInt($("#thresholdHumidity").val()),
-      "max_temperature": 22
-    }),
+    data: serializeForm(),
     contentType : 'application/json',
     type: 'PATCH',
     success: function() {
@@ -101,17 +178,12 @@ function changeSettings() {
   });
 }
 
+poll();
 getSettings();
 
 setInterval(function() {
-  $.getJSON("/readings", function(data) {
-    $(".readings #temperature").text(data.temperature);
-    $(".readings #humidity").text(data.humidity);
-  });
-  $.getJSON("/settings", function(data) {
-    setStateOnOff(data.on);
-  });
-}, 1000);
+  poll();
+}, 2000);
 </script>
 </body>
 </html>

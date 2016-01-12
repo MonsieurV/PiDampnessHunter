@@ -20,14 +20,12 @@ def index():
 
 @web.route("/on", methods=['POST'])
 def on():
-    # TODO Not thread safe!
     strategy.start()
     update()
     return '', 204
 
 @web.route("/off", methods=['POST'])
 def off():
-    # TODO Not thread safe!
     strategy.stop()
     update()
     return '', 204
@@ -46,7 +44,6 @@ def get_settings():
 
 @web.route("/settings", methods=['PATCH'])
 def set_settings():
-    # TODO Not thread safe!
     if request.json['threshold_humidity']:
         strategy.THRESHOLD_HUMIDITY = request.json['threshold_humidity']
     if request.json['threshold_temperature']:

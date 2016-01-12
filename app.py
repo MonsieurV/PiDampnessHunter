@@ -80,6 +80,9 @@ class HeatStrategy:
     def stop(self):
         self.on = False
 
+    def reset(self):
+        self.duration_counter = None
+
 pifacedigital = pifacedigitalio.PiFaceDigital()
 strategy = HeatStrategy()
 
@@ -103,6 +106,7 @@ def run():
             try:
                 if irqQueue.get(True, strategy.TICK) == 'STOP':
                     quit_gracefully()
+                strategy.reset()
             except queue.Empty:
                 pass
             humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, 4)
