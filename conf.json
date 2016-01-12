@@ -1,1 +1,1 @@
-{"threshold_humidity": 49, "max_temperature": 21.5, "tick": 10, "threshold_temperature": 18.5, "min_duration": 3}
+{"threshold_humidity": 49, "history_length": 200, "max_temperature": 21.5, "min_duration": 3, "tick": 10, "threshold_temperature": 18.5}

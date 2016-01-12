@@ -35,12 +35,17 @@ def get_readings():
     return jsonify(temperature=strategy.temperature,
         humidity=strategy.humidity)
 
+@web.route("/readings/history", methods=['GET'])
+def get_readings_history():
+    return jsonify({ 'history': strategy.history })
+
 @web.route("/settings", methods=['GET'])
 def get_settings():
     return jsonify(on=strategy.on,
         threshold_humidity=strategy.conf['threshold_humidity'],
         threshold_temperature=strategy.conf['threshold_temperature'],
-        max_temperature=strategy.conf['max_temperature'])
+        max_temperature=strategy.conf['max_temperature'],
+        history_length=strategy.conf['history_length'])
 
 @web.route("/settings", methods=['PATCH'])
 def set_settings():
@@ -50,6 +55,8 @@ def set_settings():
         strategy.conf['threshold_temperature'] = request.json['threshold_temperature']
     if request.json['max_temperature']:
         strategy.conf['max_temperature'] = request.json['max_temperature']
+    if request.json['history_length']:
+        strategy.conf['history_length'] = request.json['history_length']
     update()
     return '', 204
 

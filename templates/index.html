@@ -64,6 +64,10 @@
           <label for="maxTemperature">Maximum Temperature</label>
           <input id="maxTemperature" type="number">
         </div>
+        <div class="six columns">
+          <label for="historyLength">History Length</label>
+          <input id="historyLength" type="number">
+        </div>
       </div>
       <button onclick="changeSettings(); return false;">Update</button>
     </form>
@@ -76,17 +80,31 @@
   </div>
 <script>
 var originalForm = null;
-var chartTemperature = {
-  labels: [],
-  series: [
-    []
-  ]
-}
-var chartHumidity = {
-  labels: [],
-  series: [
-    []
-  ]
+var chartTemperature = null;
+var chartHumidity = null;
+
+function loadDataChart() {
+  $.getJSON("/readings/history", function(data) {
+    chartTemperature = {
+      labels: [],
+      series: [
+        []
+      ]
+    };
+    chartHumidity = {
+      labels: [],
+      series: [
+        []
+      ]
+    };
+    data.history.forEach(function(reading) {
+      chartTemperature.labels.push('');
+      chartTemperature.series[0].push(reading.temperature);
+      chartHumidity.labels.push('');
+      chartHumidity.series[0].push(reading.humidity);
+    });
+    showGraph();
+  });
 }
 
 function showGraph() {
@@ -132,7 +150,8 @@ function serializeForm() {
   return JSON.stringify({
     "threshold_temperature": parseFloat($("#thresholdTemperature").val()),
     "threshold_humidity": parseFloat($("#thresholdHumidity").val()),
-    "max_temperature": parseFloat($("#maxTemperature").val())
+    "max_temperature": parseFloat($("#maxTemperature").val()),
+    "history_length": parseFloat($("#historyLength").val())
   });
 }
 
@@ -141,6 +160,7 @@ function getSettings() {
     $("#thresholdTemperature").val(data.threshold_temperature);
     $("#thresholdHumidity").val(data.threshold_humidity);
     $("#maxTemperature").val(data.max_temperature);
+    $("#historyLength").val(data.history_length);
     originalForm = serializeForm();
     $(".preferences button").removeClass("button-primary");
   });
@@ -158,11 +178,13 @@ function poll() {
   $.getJSON("/readings", function(data) {
     $(".readings #temperature").text(data.temperature);
     $(".readings #humidity").text(data.humidity);
-    chartTemperature.labels.push('');
-    chartTemperature.series[0].push(data.temperature);
-    chartHumidity.labels.push('');
-    chartHumidity.series[0].push(data.humidity);
-    showGraph();
+    if(chartTemperature !== null && chartHumidity !== null) {
+      chartTemperature.labels.push('');
+      chartTemperature.series[0].push(data.temperature);
+      chartHumidity.labels.push('');
+      chartHumidity.series[0].push(data.humidity);
+      showGraph();
+    }
   });
   $.getJSON("/settings", function(data) {
     setStateOnOff(data.on);
@@ -180,6 +202,7 @@ function changeSettings() {
   });
 }
 
+loadDataChart();
 poll();
 getSettings();
 

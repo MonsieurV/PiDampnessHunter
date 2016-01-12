@@ -22,6 +22,7 @@ try:
 except ImportError:
     import queue
 import json
+import datetime
 
 CONF_FILE = 'conf.json'
 
@@ -41,12 +42,14 @@ class HeatStrategy:
         - threshold_temperature;
         - max_temperature;
         - tick -- In seconds;
-        - min_duration -- As a multiple of tick."""
+        - min_duration -- As a multiple of tick;
+        - history_length."""
         self.conf = configuration
         self.on = True
         self.duration_counter = None
         self.temperature = None
         self.humidity = None
+        self.history = []
 
     def set(self, temperature, humidity):
         self.temperature = temperature
@@ -55,6 +58,13 @@ class HeatStrategy:
         self.humidity = humidity
         if self.humidity:
             self.humidity = round(self.humidity, 2)
+        self.history.append({
+            'timestamp': datetime.datetime.now(),
+            'humidity': humidity,
+            'temperature': temperature
+            })
+        while len(self.history) > self.conf['history_length']:
+            del self.history[0]
 
     def heat(self):
         if not self.on:
