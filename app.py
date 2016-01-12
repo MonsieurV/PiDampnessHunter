@@ -21,19 +21,28 @@ try:
     import Queue as queue
 except ImportError:
     import queue
+import json
+
+CONF_FILE = 'conf.json'
+
+def loadConfigurationFromFile(strategy):
+    with open(CONF_FILE, 'r') as f:
+        strategy.conf = json.load(f)
+
+def saveConfigurationToFile(strategy):
+    with open(CONF_FILE, 'w') as f:
+        json.dump(strategy.conf, f)
 
 class HeatStrategy:
-    # TODO Conceive a smarter algorithm that use 'target' values,
-    # not raw thresholds.
-    THRESHOLD_HUMIDITY = 50
-    THRESHOLD_TEMPERATURE = 18.5
-    MAX_TEMPERATURE = 21.5
-    # In seconds.
-    TICK = 10
-    # As a multiple of TICK.
-    MIN_DURATION = 3
-
-    def __init__(self):
+    def __init__(self, configuration):
+        """ Initiliaze.
+        configuration -- A dict with:
+        - threshold_humidity;
+        - threshold_temperature;
+        - max_temperature;
+        - tick -- In seconds;
+        - min_duration -- As a multiple of tick."""
+        self.conf = configuration
         self.on = True
         self.duration_counter = None
         self.temperature = None
@@ -48,16 +57,15 @@ class HeatStrategy:
             self.humidity = round(self.humidity, 2)
 
     def heat(self):
-        print(self.on, self.THRESHOLD_HUMIDITY, self.THRESHOLD_TEMPERATURE)
         if not self.on:
             return self._stop_heating()
         if self.duration_counter is not None \
-                and self.duration_counter < self.MIN_DURATION:
+                and self.duration_counter < self.conf['min_duration']:
             return self._start_heating()
-        if self.temperature > self.THRESHOLD_TEMPERATURE \
-                and self.humidity < self.THRESHOLD_HUMIDITY:
+        if self.temperature > self.conf['threshold_temperature'] \
+                and self.humidity < self.conf['threshold_humidity']:
             return self._stop_heating()
-        if self.temperature > self.MAX_TEMPERATURE:
+        if self.temperature > self.conf['max_temperature']:
             return self._stop_heating()
         # TODO Check the current duration of heating: if the heater has been working
         # more than MAX_DURATION, make a pause during PAUSE_DURATION.
@@ -71,7 +79,7 @@ class HeatStrategy:
         return True
 
     def _stop_heating(self):
-        self.duration_counter = None
+        self.reset()
         return False
 
     def start(self):
@@ -84,27 +92,28 @@ class HeatStrategy:
         self.duration_counter = None
 
 pifacedigital = pifacedigitalio.PiFaceDigital()
-strategy = HeatStrategy()
+strategy = HeatStrategy(None)
+# Load conf from file.
+loadConfigurationFromFile(strategy)
+irqQueue = queue.Queue()
 
 def quit_gracefully(*args):
     pifacedigital.relays[1].turn_off()
     exit(0)
-
-irqQueue = queue.Queue()
+signal.signal(signal.SIGINT, quit_gracefully)
 
 def update():
     irqQueue.put('UPDATE')
+    saveConfigurationToFile(strategy)
 
 def stop():
     irqQueue.put('STOP')
-
-signal.signal(signal.SIGINT, quit_gracefully)
 
 def run():
     try:
         while 1:
             try:
-                if irqQueue.get(True, strategy.TICK) == 'STOP':
+                if irqQueue.get(True, strategy.conf['tick']) == 'STOP':
                     quit_gracefully()
                 strategy.reset()
             except queue.Empty:
