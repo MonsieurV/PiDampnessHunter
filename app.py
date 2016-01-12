@@ -46,6 +46,7 @@ class HeatStrategy:
         - history_length."""
         self.conf = configuration
         self.on = True
+        self.heating = False
         self.duration_counter = None
         self.temperature = None
         self.humidity = None
@@ -61,12 +62,17 @@ class HeatStrategy:
         self.history.append({
             'timestamp': datetime.datetime.now(),
             'humidity': humidity,
-            'temperature': temperature
+            'temperature': temperature,
+            'heating': self.heating
             })
         while len(self.history) > self.conf['history_length']:
             del self.history[0]
 
     def heat(self):
+        self.heating = self._heat()
+        return self.heating
+
+    def _heat(self):
         if not self.on:
             return self._stop_heating()
         if self.duration_counter is not None \

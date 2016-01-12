@@ -33,7 +33,7 @@ def off():
 @web.route("/readings", methods=['GET'])
 def get_readings():
     return jsonify(temperature=strategy.temperature,
-        humidity=strategy.humidity)
+        humidity=strategy.humidity, heating=strategy.heating)
 
 @web.route("/readings/history", methods=['GET'])
 def get_readings_history():

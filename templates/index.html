@@ -19,7 +19,7 @@
   <div class="container">
     <div class="row" style="margin-top: 5%">
       <div>
-        <h3>Hampness Hunter</h3>
+        <h3 id="hampness-title">Hampness Hunter</h3>
       </div>
     </div>
     <div class="row">
@@ -85,6 +85,8 @@ var chartHumidity = null;
 
 function loadDataChart() {
   $.getJSON("/readings/history", function(data) {
+    if(data.history.length < 1)
+      return;
     chartTemperature = {
       labels: [],
       series: [
@@ -178,13 +180,10 @@ function poll() {
   $.getJSON("/readings", function(data) {
     $(".readings #temperature").text(data.temperature);
     $(".readings #humidity").text(data.humidity);
-    if(chartTemperature !== null && chartHumidity !== null) {
-      chartTemperature.labels.push('');
-      chartTemperature.series[0].push(data.temperature);
-      chartHumidity.labels.push('');
-      chartHumidity.series[0].push(data.humidity);
-      showGraph();
-    }
+    if(data.heating)
+      $("#hampness-title").addClass("heating");
+    else
+      $("#hampness-title").removeClass("heating");
   });
   $.getJSON("/settings", function(data) {
     setStateOnOff(data.on);
@@ -209,6 +208,9 @@ getSettings();
 setInterval(function() {
   poll();
 }, 2000);
+setInterval(function() {
+  loadDataChart();
+}, 10000);
 </script>
 </body>
 </html>
