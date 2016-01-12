@@ -92,6 +92,7 @@ var chartHumidity = {
 function showGraph() {
   new Chartist.Line('#chart-temperature', chartTemperature, {
     showPoint: false,
+    lineSmooth: false,
     axisX: {
       showGrid: false,
       showLabel: false
@@ -99,6 +100,7 @@ function showGraph() {
   });
   new Chartist.Line('#chart-humidity', chartHumidity, {
     showPoint: false,
+    lineSmooth: false,
     axisX: {
       showGrid: false,
       showLabel: false
